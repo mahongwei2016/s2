@@ -118,9 +118,6 @@ clock_init:
 		ldr r0, =CLK_SRC
 		mov r1, #0x03
 		str r1, [r0]
-		
-		
-		
 		mov pc,lr
 		
 		
