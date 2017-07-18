@@ -55,6 +55,7 @@ reset:
 		bl mem_init
 		bl copy_to_ram
 		bl init_stack
+		bl clean_bss
 		bl led_on
 		
 
@@ -139,6 +140,18 @@ copy_loop:
 init_stack:
 		ldr sp, =0x54000000
 		mov pc, lr
+
+clean_bss:
+		ldr r0, =bss_start
+		ldr r1, =bss_end
+		cmp r0, r1
+		moveq pc, lr
+clean_loop:
+		mov r2, #0
+		str r2, [r0], #4
+		cmp r0, r1
+		moveq pc, lr
+		b clean_loop
 		
 #define GPKCON0 0x7F008800	
 #define GPKDAT 0x7F008808	
