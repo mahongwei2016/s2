@@ -56,7 +56,7 @@ reset:
 		bl copy_to_ram
 		bl init_stack
 		bl clean_bss
-		bl led_on
+		ldr pc, =gboot_main
 		
 
 set_peri_port:
@@ -126,7 +126,7 @@ clock_init:
 
 copy_to_ram:
 		ldr r0, =0x0C000000
-		ldr r1, =0x50000000
+		ldr r1, =0x50008000
 		add r3, r0, #1024*4
 
 copy_loop:
