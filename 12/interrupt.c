@@ -8,6 +8,7 @@
 void key1_handle(void)
 {
 	__asm__(
+	//保护环境，因为流水线，pc+12，lr+8
 	"sub lr, lr, #4\n"
 	"stmfd sp!, {r0-r12,lr}\n"
 	:
@@ -23,6 +24,7 @@ void key1_handle(void)
 	*(VIC0ADDRESS)=0;
 	__asm__(
 	"sub lr, lr, #4\n"
+	//^意思是把SPSR拷贝到CPSR
 	"ldmfd sp!, {r0-r12,pc}^\n"
 	:
 	:
@@ -36,10 +38,13 @@ void init_irq(void)
 	*(VIC0INTENABLE)|=0x01;
 	*(VIC0VECTADDR0)=(int)key1_handle;
 	__asm__(
+	
+	//使用向量中断
 	"mrc p15, 0, r0, c1, c0, 0\n"
 	"orr r0, r0, #(1<<24)\n"
 	"mcr p15, 0, r0, c1, c0, 0\n"
 	
+	//打开中断
 	"mrs r0, cpsr\n"
 	"bic r0, r0, #(1<<7)\n"
 	"msr cpsr, r0\n"
