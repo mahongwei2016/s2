@@ -113,14 +113,17 @@ clock_init:
 		ldr r1, =DIV_VAL
 		str r1, [r0]
 		
+		//设置APLL到533M 
 		ldr r0, =APLL_CON
 		ldr r1,=PLL_VALUE
 		str r1, [r0]
 
+		//设置MPLL到533M
 		ldr r0, =MPLL_CON
 		ldr r1, =PLL_VALUE
 		str r1, [r0]
 		
+		//为各个clock选择正确的时钟源 
 		ldr r0, =CLK_SRC
 		mov r1, #0x03
 		str r1, [r0]
