@@ -102,13 +102,13 @@ disable_mmu:
 #define CLK_DIV0 0x7E00F020
 #define DIV_VAL ((0<<0)|(0<<4)|(1<<9)|(1<<8)|(3<<12))
 clock_init:
-		//靠cpu靠靠靠靠cpu 緿DR縞lock靠
+		//因为cpu和外设总线的时钟不同，因此设置cpu到异步模式 
 		ldr r0, =OTHERS
 		ldr r1, [r0]
 		bic r1,r1, #0xc0
 		str r1, [r0]
 		
-		//armclock=APLL縈PLLclock=MPLL/2,HCLK=HCLKx2 /2,HCLKx2=HCLKx2in /2,PCLK=HCLKx2 /4
+		//armclock=APLL，PLLclock=MPLL/2,HCLK=HCLKx2 /2,HCLKx2=HCLKx2in /2,PCLK=HCLKx2 /4
 		ldr r0, =CLK_DIV0
 		ldr r1, =DIV_VAL
 		str r1, [r0]
