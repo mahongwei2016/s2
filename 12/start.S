@@ -58,13 +58,14 @@ reset:
 		bl clean_bss
 		ldr pc, =gboot_main
 		
-
+//设置外设基地址：把外设基地址写入cp15 c15 c2寄存器 
 set_peri_port:
 		ldr r0, =0x70000000
 		orr r0, r0, #0x13
 		mcr p15, 0, r0, c15, c2, 4
 		mov pc, lr
-		
+
+//设置cpu到SVC模式：把0xd3写入cpsr中		
 set_svc:
 		mrs r0, cpsr
 		bic r0, r0, #0x1f
@@ -72,6 +73,7 @@ set_svc:
 		msr cpsr, r0
 		mov pc, lr
 
+//禁用watchdog：把WATCON的最低位清零来禁用watchdog 
 #define pWTCON 0x7e004000
 disable_watchdog:
 		ldr r0, =pWTCON
@@ -79,6 +81,7 @@ disable_watchdog:
 		str r1, [r0]
 		mov pc, lr
 		
+//禁用中断：向像个VICxINTENCLEAR寄存器写入全1来清楚中断使能。 
 disable_interrupt:
 		ldr r0,	=0x71200014
 		mvn r1, #0x0
@@ -87,13 +90,22 @@ disable_interrupt:
 		str r1, [r0]
 		mov pc, lr
 
+//禁用mmu：	1.向cp15 c7 c7 写任意东西来使 I/D cache无效 
+//			2.向cp15 c1 c0 第0,2位写入0，分别禁用mmu和d cache 
 disable_mmu:
+		//禁用I/D cache 
 		mcr p15, 0, r0, c7, c7, 0
 		mrc p15, 0, r0, c1, c0, 0
 		bic r0, r0, #0x05
 		mcr p15, 0, r0, c1, c0, 0
 		mov pc, lr
 
+/*
+arm:	533M
+HCLKx2:	266M
+HCLK:	133M
+PCLK:	66M
+*/ 
 #define OTHERS 0x7E00F900
 #define APLL_CON 0x7E00F00C
 #define MPLL_CON 0x7E00F010
@@ -128,7 +140,7 @@ clock_init:
 		mov r1, #0x03
 		str r1, [r0]
 		mov pc,lr
-
+//拷贝代码：从垫脚石拷贝4K到内存的0x50008000中 
 copy_to_ram:
 		ldr r0, =0x0C000000
 		ldr r1, =0x50008000
@@ -141,7 +153,9 @@ copy_loop:
 		bne copy_loop
 		
 		mov pc, lr
-		
+
+//清楚栈：先让cpu进入中断模式，设置中断的栈：0x5300000-0x53ffffff
+//		  让cpu进入svc模式，设置svc的栈：0x54000000-0x5fffffff		
 init_stack:
 		msr cpsr, #0xd2
 		ldr sp, =0x53000000
@@ -149,6 +163,7 @@ init_stack:
 		ldr sp, =0x54000000
 		mov pc, lr
 
+//清楚bss段：bss段开头结尾都在lds文件中定义了标号。 
 clean_bss:
 		ldr r0, =bss_start
 		ldr r1, =bss_end
