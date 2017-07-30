@@ -53,8 +53,11 @@ reset:
 		bl disable_mmu
 		bl clock_init
 		bl mem_init
-		bl copy_to_ram
 		bl init_stack
+		bl nand_init
+@		bl copy_to_ram
+		bl copy_nand_to_ram
+		bl led_on
 		bl clean_bss
 		ldr pc, =gboot_main
 		
@@ -152,6 +155,16 @@ copy_loop:
 		cmp r0, r3
 		bne copy_loop
 		
+		mov pc, lr
+
+copy_nand_to_ram:
+		mov r0, #0
+		ldr r1,	=_start
+		ldr r2, =bss_end
+		sub r2, r2, r1
+		mov ip, lr
+		bl nand_to_ram
+		mov lr, ip
 		mov pc, lr
 
 //清楚栈：先让cpu进入中断模式，设置中断的栈：0x5300000-0x53ffffff
