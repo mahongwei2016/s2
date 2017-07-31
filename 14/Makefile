@@ -1,8 +1,9 @@
 CFLAGS := -fno-builtin -I$(shell pwd)/include
 export CFLAGS
-all: start.o mem.o main.o dev/dev.o lib/lib.o
+all: start.o mem.o dev/dev.o lib/lib.o main.o
 	arm-linux-ld -Tgboot.lds -o gboot.elf $^
 	arm-linux-objcopy -O binary gboot.elf gboot.bin
+	cp gboot.bin ../../
 	
 %.o : %.S
 	arm-linux-gcc -g -c $^

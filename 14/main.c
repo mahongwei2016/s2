@@ -12,6 +12,7 @@ void nand_test(void)
 	if(buff[0]==100)
 		led_on4();
 }
+char *buf="I love linux\n";
 int gboot_main()
 {
 	int num;
@@ -25,6 +26,7 @@ int gboot_main()
 	uart_init();
 	putc('A');
 	printf("B\r\n");
+	uart_send_string(buf);
 	while(1)
 	{
 		printf("*******************************************\n\r");
