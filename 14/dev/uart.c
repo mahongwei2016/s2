@@ -7,6 +7,7 @@
 #define UTRSTAT0 	(*((volatile unsigned long*)0x7F005010))
 #define UTXH0 	(*((volatile unsigned long*)0x7F005020))
 #define URXH0 	(*((volatile unsigned long*)0x7F005024))
+#define UFCON0     (*((volatile unsigned long *)0x7F005008))
 #define PCLK 66500000
 #define BAUD 115200
 void uart_init()
@@ -15,8 +16,9 @@ void uart_init()
 	GPACON&=~(0xff);
 	GPACON|=0x22;
 	//设置数据格式 
-	ULCON0=0b111;
+	ULCON0=0b11;
 	//设置工作模式
+	UFCON0 = 0x01; /* FIFO ENABLE */
 	UCON0=0x05;
 	//设置波特率 
 	UBRDIV0=(int)(PCLK/(BAUD*16)-1);
