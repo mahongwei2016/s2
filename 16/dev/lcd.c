@@ -10,6 +10,14 @@
 #define GPIPUD  (*((volatile unsigned long *)0x7F008108))
 #define GPJCON  (*((volatile unsigned long *)0x7F008120))
 #define GPJPUD  (*((volatile unsigned long *)0x7F008128))
+//pwm波形
+#define TCFG0 (*((volatile unsigned long *)0x7F006000)) 
+#define TCFG1 (*((volatile unsigned long *)0x7F006004)) 
+#define TCON (*((volatile unsigned long *)0x7F006008))
+#define TCNTB0 (*((volatile unsigned long *)0x7F00600C)) 
+#define TCMPB0 (*((volatile unsigned long *)0x7F006010)) 
+#define TCNTB1 (*((volatile unsigned long *)0x7F006018)) 
+#define TCMPB1 (*((volatile unsigned long *)0x7F00601c)) 
 
 /* display controller */
 #define MIFPCON  	    (*((volatile unsigned long *)0x7410800C))
@@ -41,15 +49,32 @@ extern unsigned char bmp[189000];
 #define LINEVAL 			(271)
 #define HOZVAL				(479)
 
+void lcd_back_light(void)
+{
+        GPECON = 0x00011111;
+        GPEDAT = 0x00000001;
+        GPFCON |=(2<<30);
+#if 1   
+        TCFG0 = 0;
+        TCFG1 |= (1<<4)|(1<<0);
+        TCNTB0=3;
+        TCMPB0=1;
+        TCNTB1=3;
+        TCMPB1=1;
+        TCON |= 1<<1;
+        TCON &= ~(1<<1);
+        TCON |= 1<<9;
+        TCON &= ~(1<<9);
+        TCON |=(1<<8)|(1<<11)|(1<<0)|(1<<3);
+#endif
 
+
+}
 // 初始化LCD
 void lcd_init(void)
 {
+	lcd_back_light();
 	// 配置GPIO用于LCD相关的功能
-	GPECON = 0x00011111;
-	GPEDAT = 0x00000001;
-	GPFCON = 0x96AAAAAA;
-	GPFDAT = 0x00002000;
 	GPICON = 0xAAAAAAAA;
 	GPJCON = 0x00AAAAAA;
 
@@ -60,7 +85,7 @@ void lcd_init(void)
 	SPCON =  (SPCON & ~(0x3)) | 1;
 
 	// 配置VIDCONx，设置接口类型、时钟、极性和使能LCD控制器等
-	VIDCON0 = (0<<26)|(0<<17)|(0<<16)|(16<<6)|(0<<5)|(1<<4)|(0<<2)|(3<<0);
+	VIDCON0 = (0<<26)|(0<<17)|(0<<16)|(13<<6)|(0<<5)|(1<<4)|(0<<2)|(3<<0);
 	VIDCON1 |= 1<<5 | 1<<6;
 
 	// 配置VIDTCONx，设置时序和长宽等

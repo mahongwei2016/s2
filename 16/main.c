@@ -1,6 +1,10 @@
 
 
 #define nand_page_to_write 64*20+1
+void delay(int i)
+{
+	while(i--);
+};
 void nand_test(void)
 {
 	volatile unsigned char buff[2048]={0};
@@ -31,6 +35,23 @@ int gboot_main()
 	dma_start(); 
 	lcd_init();
 	lcd_test(); 
+	dm9000_init();
+	while(1)
+	{
+		arp_request();
+		//printf("rx:yes?%d",dm9000_reg_read(0xfe)&0x01);
+		//
+		#define EINT0MASK (*((volatile unsigned long *)0x7F008920))
+		printf("EINT0MASK:%x\n\r",EINT0MASK);
+		#undef EINT0MASK
+		//#define GPNDAT (*((volatile unsigned long *)0x7F008834))
+		//printf("GPNDAT:%x\n\r",GPNDAT);
+		//#undef GPNDAT
+		#define EINT0PEND (*((volatile unsigned long *)0x7F008924))
+		printf("EINT0PEND:%x\n\r",EINT0PEND);
+		#undef EINT0PEND
+		delay(10000);
+	}
 	while(1)
 	{
 		printf("*******************************************\n\r");
