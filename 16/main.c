@@ -38,18 +38,9 @@ int gboot_main()
 	dm9000_init();
 	while(1)
 	{
-		arp_request();
-		//printf("rx:yes?%d",dm9000_reg_read(0xfe)&0x01);
-		//
-		#define EINT0MASK (*((volatile unsigned long *)0x7F008920))
-		printf("EINT0MASK:%x\n\r",EINT0MASK);
-		#undef EINT0MASK
-		//#define GPNDAT (*((volatile unsigned long *)0x7F008834))
-		//printf("GPNDAT:%x\n\r",GPNDAT);
-		//#undef GPNDAT
-		#define EINT0PEND (*((volatile unsigned long *)0x7F008924))
-		printf("EINT0PEND:%x\n\r",EINT0PEND);
-		#undef EINT0PEND
+		static int j=0;
+		j++;
+		arp_request(j);
 		delay(10000);
 	}
 	while(1)

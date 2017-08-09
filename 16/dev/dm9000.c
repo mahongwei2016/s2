@@ -30,9 +30,9 @@ void int7_init(void)
 {
 	//配置int7为中断 
 	GPNCON &=(~(3<<14));
-	GPNCON |=(3<<14);
+	GPNCON |=(2<<14);
 	//配置int7位 
-	EINT0CON0 &=(~(3<<12)); 
+	EINT0CON0 &=(~(7<<12)); 
 	EINT0CON0 |=(1<<12);
 	//外部中断使能
 	EINT0MASK&=(~(1<<7));
@@ -154,6 +154,7 @@ void dm9000_init()
 unsigned int dm9000_tx(char* data,int length)
 {
 	//禁止中断
+	EINT0MASK|=1<<7;
 	dm9000_reg_write(0xff,0x80);
 	//写入待发送数据的长度
 	dm9000_reg_write(0xfc, length & 0xff);
@@ -175,10 +176,14 @@ unsigned int dm9000_tx(char* data,int length)
         if((status&0x01)==0x00)
 		break;
 	}
+	i=10000;
+	while(i--);
+	//printf("send over!");
 	//清楚发送状态
 	dm9000_reg_write(0x01,0x2c);
 	//恢复中断使能 
 	dm9000_reg_write(0xff,0x81);
+	EINT0MASK&=(~(1<<7));
 	return length;
 }
  
@@ -232,6 +237,7 @@ void int_issur(void)
         :
         :
         );
+    EINT0MASK|=(1<<7);
     static int i;
     printf("interrupt:%d\n\r",i++);
     rxpacket_len=dm9000_rx(rxbuffer);
@@ -239,11 +245,12 @@ void int_issur(void)
 	arp_process();
 
     /*clear interrupt*/
-  //  dm9000_reg_write(0xfe,0x01);
+    dm9000_reg_write(0xfe,0x01);
 
     EINT0PEND|=(1<<7);
     VIC0ADDRESS=0;
     VIC1ADDRESS=0;
+    EINT0MASK&=(~(1<<7));
     __asm__(
         "ldmfd sp!,{r0-r12,pc}^\n"
         :
