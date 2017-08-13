@@ -1,9 +1,11 @@
 #include "vsprintf.h"
 unsigned char outbuff[1024];
 unsigned char inbuff[1024];
+#define EINT0MASK (*((volatile unsigned long *)0x7F008920))
 int printf(const char* fmt,...)
 {
 	va_list args;
+	EINT0MASK|=(1<<7);
 	int i;
 	//1.将变参转换为字符串
 	va_start(args,fmt);
@@ -12,6 +14,7 @@ int printf(const char* fmt,...)
 	//2.打印字符串到串口
 	for(i=0;i<strlen(outbuff);i++)
 		putc(outbuff[i]); 
+	EINT0MASK&=(~(1<<7));
 	return 1;
 }
 int scanf(const char* fmt,...)
