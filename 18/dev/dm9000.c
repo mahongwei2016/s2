@@ -175,6 +175,7 @@ unsigned int dm9000_tx(char* data,int length)
 		status = dm9000_reg_read(0x02);
         if((status&0x01)==0x00)
 		break;
+		printf("sending!\r\n");
 	}
 	i=10000;
 	while(i--);

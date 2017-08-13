@@ -42,6 +42,7 @@ int gboot_main()
 		j++;
 		arp_request(j);
 		delay(10000);
+		printf("j:%d\r\n",j); 
 	}
 	while(1)
 	{
