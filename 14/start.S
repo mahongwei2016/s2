@@ -1,7 +1,7 @@
 @****************************
 @File:start.S
 @
-@ÂíºêÎ°
+@é©¬å®ä¼Ÿ
 @****************************
 
 .text
@@ -55,20 +55,20 @@ reset:
 		bl mem_init
 		bl init_stack
 		bl nand_init
-@		bl copy_to_ram
-		bl copy_nand_to_ram
+		@bl copy_to_ram
+		@bl copy_nand_to_ram
 		bl led_on
 		bl clean_bss
 		ldr pc, =gboot_main
 		
-//ÉèÖÃÍâÉè»ùµØÖ·£º°ÑÍâÉè»ùµØÖ·Ğ´Èëcp15 c15 c2¼Ä´æÆ÷ 
+//è®¾ç½®å¤–è®¾åŸºåœ°å€ï¼šæŠŠå¤–è®¾åŸºåœ°å€å†™å…¥cp15 c15 c2å¯„å­˜å™¨ 
 set_peri_port:
 		ldr r0, =0x70000000
 		orr r0, r0, #0x13
 		mcr p15, 0, r0, c15, c2, 4
 		mov pc, lr
 
-//ÉèÖÃcpuµ½SVCÄ£Ê½£º°Ñ0xd3Ğ´ÈëcpsrÖĞ		
+//è®¾ç½®cpuåˆ°SVCæ¨¡å¼ï¼šæŠŠ0xd3å†™å…¥cpsrä¸­		
 set_svc:
 		mrs r0, cpsr
 		bic r0, r0, #0x1f
@@ -76,7 +76,7 @@ set_svc:
 		msr cpsr, r0
 		mov pc, lr
 
-//½ûÓÃwatchdog£º°ÑWATCONµÄ×îµÍÎ»ÇåÁãÀ´½ûÓÃwatchdog 
+//ç¦ç”¨watchdogï¼šæŠŠWATCONçš„æœ€ä½ä½æ¸…é›¶æ¥ç¦ç”¨watchdog 
 #define pWTCON 0x7e004000
 disable_watchdog:
 		ldr r0, =pWTCON
@@ -84,7 +84,7 @@ disable_watchdog:
 		str r1, [r0]
 		mov pc, lr
 		
-//½ûÓÃÖĞ¶Ï£ºÏòÏñ¸öVICxINTENCLEAR¼Ä´æÆ÷Ğ´ÈëÈ«1À´Çå³şÖĞ¶ÏÊ¹ÄÜ¡£ 
+//ç¦ç”¨ä¸­æ–­ï¼šå‘åƒä¸ªVICxINTENCLEARå¯„å­˜å™¨å†™å…¥å…¨1æ¥æ¸…æ¥šä¸­æ–­ä½¿èƒ½ã€‚ 
 disable_interrupt:
 		ldr r0,	=0x71200014
 		mvn r1, #0x0
@@ -93,10 +93,10 @@ disable_interrupt:
 		str r1, [r0]
 		mov pc, lr
 
-//½ûÓÃmmu£º	1.Ïòcp15 c7 c7 Ğ´ÈÎÒâ¶«Î÷À´Ê¹ I/D cacheÎŞĞ§ 
-//			2.Ïòcp15 c1 c0 µÚ0,2Î»Ğ´Èë0£¬·Ö±ğ½ûÓÃmmuºÍd cache 
+//ç¦ç”¨mmuï¼š	1.å‘cp15 c7 c7 å†™ä»»æ„ä¸œè¥¿æ¥ä½¿ I/D cacheæ— æ•ˆ 
+//			2.å‘cp15 c1 c0 ç¬¬0,2ä½å†™å…¥0ï¼Œåˆ†åˆ«ç¦ç”¨mmuå’Œd cache 
 disable_mmu:
-		//½ûÓÃI/D cache 
+		//ç¦ç”¨I/D cache 
 		mcr p15, 0, r0, c7, c7, 0
 		mrc p15, 0, r0, c1, c0, 0
 		bic r0, r0, #0x05
@@ -117,33 +117,33 @@ PCLK:	66M
 #define CLK_DIV0 0x7E00F020
 #define DIV_VAL ((0<<0)|(0<<4)|(1<<9)|(1<<8)|(3<<12))
 clock_init:
-		//ÒòÎªcpuºÍÍâÉè×ÜÏßµÄÊ±ÖÓ²»Í¬£¬Òò´ËÉèÖÃcpuµ½Òì²½Ä£Ê½ 
+		//å› ä¸ºcpuå’Œå¤–è®¾æ€»çº¿çš„æ—¶é’Ÿä¸åŒï¼Œå› æ­¤è®¾ç½®cpuåˆ°å¼‚æ­¥æ¨¡å¼ 
 		ldr r0, =OTHERS
 		ldr r1, [r0]
 		bic r1,r1, #0xc0
 		str r1, [r0]
 		
-		//armclock=APLL£¬PLLclock=MPLL/2,HCLK=HCLKx2 /2,HCLKx2=HCLKx2in /2,PCLK=HCLKx2 /4
+		//armclock=APLLï¼ŒPLLclock=MPLL/2,HCLK=HCLKx2 /2,HCLKx2=HCLKx2in /2,PCLK=HCLKx2 /4
 		ldr r0, =CLK_DIV0
 		ldr r1, =DIV_VAL
 		str r1, [r0]
 		
-		//ÉèÖÃAPLLµ½533M 
+		//è®¾ç½®APLLåˆ°533M 
 		ldr r0, =APLL_CON
 		ldr r1,=PLL_VALUE
 		str r1, [r0]
 
-		//ÉèÖÃMPLLµ½533M
+		//è®¾ç½®MPLLåˆ°533M
 		ldr r0, =MPLL_CON
 		ldr r1, =PLL_VALUE
 		str r1, [r0]
 		
-		//Îª¸÷¸öclockÑ¡ÔñÕıÈ·µÄÊ±ÖÓÔ´ 
+		//ä¸ºå„ä¸ªclocké€‰æ‹©æ­£ç¡®çš„æ—¶é’Ÿæº 
 		ldr r0, =CLK_SRC
 		mov r1, #0x03
 		str r1, [r0]
 		mov pc,lr
-//¿½±´´úÂë£º´Óµæ½ÅÊ¯¿½±´4Kµ½ÄÚ´æµÄ0x50008000ÖĞ 
+//æ‹·è´ä»£ç ï¼šä»å«è„šçŸ³æ‹·è´4Kåˆ°å†…å­˜çš„0x50008000ä¸­ 
 copy_to_ram:
 		ldr r0, =0x0C000000
 		ldr r1, =0x50008000
@@ -167,8 +167,8 @@ copy_nand_to_ram:
 		mov lr, ip
 		mov pc, lr
 
-//Çå³şÕ»£ºÏÈÈÃcpu½øÈëÖĞ¶ÏÄ£Ê½£¬ÉèÖÃÖĞ¶ÏµÄÕ»£º0x5300000-0x53ffffff
-//		  ÈÃcpu½øÈësvcÄ£Ê½£¬ÉèÖÃsvcµÄÕ»£º0x54000000-0x5fffffff		
+//æ¸…æ¥šæ ˆï¼šå…ˆè®©cpuè¿›å…¥ä¸­æ–­æ¨¡å¼ï¼Œè®¾ç½®ä¸­æ–­çš„æ ˆï¼š0x5300000-0x53ffffff
+//		  è®©cpuè¿›å…¥svcæ¨¡å¼ï¼Œè®¾ç½®svcçš„æ ˆï¼š0x54000000-0x5fffffff		
 init_stack:
 		msr cpsr, #0xd2
 		ldr sp, =0x53000000
@@ -176,7 +176,7 @@ init_stack:
 		ldr sp, =0x54000000
 		mov pc, lr
 
-//Çå³şbss¶Î£ºbss¶Î¿ªÍ·½áÎ²¶¼ÔÚldsÎÄ¼şÖĞ¶¨ÒåÁË±êºÅ¡£ 
+//æ¸…æ¥šbssæ®µï¼šbssæ®µå¼€å¤´ç»“å°¾éƒ½åœ¨ldsæ–‡ä»¶ä¸­å®šä¹‰äº†æ ‡å·ã€‚ 
 clean_bss:
 		ldr r0, =bss_start
 		ldr r1, =bss_end

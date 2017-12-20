@@ -34,56 +34,56 @@ void nand_addr(unsigned char addr)
 
 void nand_reset(void)
 {
-	//Ñ¡ÖĞĞ¾Æ¬
+	//é€‰ä¸­èŠ¯ç‰‡
 	select_chip();
-	//Çå³ıRnB
+	//æ¸…é™¤RnB
 	clean_RnB();
-	//·¢³ö¸´Î»ĞÅºÅ
+	//å‘å‡ºå¤ä½ä¿¡å·
 	nand_cmd(0xff);
-	//µÈ´ı¾ÍĞ÷
+	//ç­‰å¾…å°±ç»ª
 	wait_RnB();
-	//È¡ÏûÑ¡ÖĞ
+	//å–æ¶ˆé€‰ä¸­
 	disselect_chip();
 }
 
 void nand_init(void)
 {
-	//ÉèÖÃÊ±Ğò²ÎÊı
+	//è®¾ç½®æ—¶åºå‚æ•°
 #define TACLS 	7 
 #define TWRPH0 	7 
 #define TWRPH1	7 
 	NFCONF &= ~((7<<12)|(7<<8)|(7<<4));
 	NFCONF |= (TACLS<<12)|(TWRPH0<<8)|(TWRPH1<<4);
-	//Ê¹ÄÜnandflash controller
+	//ä½¿èƒ½nandflash controller
 	NFCONT =1|(1<<1); 
-	//¸´Î»
+	//å¤ä½
 	nand_reset(); 
 }
 
 void NF_PageRead(unsigned long addr,unsigned char* buff)
 {
 	int i;
-	//Ñ¡ÔñĞ¾Æ¬
+	//é€‰æ‹©èŠ¯ç‰‡
 	select_chip(); 
-	//Çå³ıRnB
+	//æ¸…é™¤RnB
 	clean_RnB();
-	//·¢³öÃüÁî0x00
+	//å‘å‡ºå‘½ä»¤0x00
 	nand_cmd(0x00);
-	//·¢³öÁĞµØÖ·
+	//å‘å‡ºåˆ—åœ°å€
 	nand_addr(0x00);
 	nand_addr(0x00);
-	//·¢³öĞĞµØÖ·
+	//å‘å‡ºè¡Œåœ°å€
 	nand_addr(addr&0xff);
 	nand_addr((addr>>8)&0xff);
 	nand_addr((addr>>16)&0xff);
-	//·¢³öÃüÁî0x30
+	//å‘å‡ºå‘½ä»¤0x30
 	nand_cmd(0x30);
-	//µÈ´ı¾ÍĞ÷
+	//ç­‰å¾…å°±ç»ª
 	wait_RnB(); 
-	//¶ÁÊı¾İ
+	//è¯»æ•°æ®
 	for(i=0;i<2048;i++)
 		*buff++=NFDATA;
-	//È¡ÏûÆ¬Ñ¡ 
+	//å–æ¶ˆç‰‡é€‰ 
 	disselect_chip();
 }
 
@@ -102,89 +102,89 @@ void nand_to_ram(unsigned long start_addr,unsigned char* sdram_addr,int size)
 int NF_Erase(unsigned long addr)
 {
 	int ret;
-	//Ñ¡ÔñflashĞ¾Æ¬
+	//é€‰æ‹©flashèŠ¯ç‰‡
 	select_chip(); 
-	//Çå³ıRnB
+	//æ¸…é™¤RnB
 	clean_RnB();
-	//·¢ËÍÃüÁî0x60
+	//å‘é€å‘½ä»¤0x60
 	nand_cmd(0x60);
-	//·¢ËÍĞĞµØÖ·£¨3¸öÖÜÆÚ£©
+	//å‘é€è¡Œåœ°å€ï¼ˆ3ä¸ªå‘¨æœŸï¼‰
 	nand_addr(addr&0xff);
 	nand_addr((addr>>8)&0xff);
 	nand_addr((addr>>16)&0xff);
-	//·¢ËÍÃüÁî0xd0
+	//å‘é€å‘½ä»¤0xd0
 	nand_cmd(0xd0);
-	//µÈ´ıRnB
+	//ç­‰å¾…RnB
 	wait_RnB(); 
-	//·¢ËÍÃüÁî0x70
+	//å‘é€å‘½ä»¤0x70
 	nand_cmd(0x70); 
-	//¶ÁÈ¡²Á³ı½á¹û
+	//è¯»å–æ“¦é™¤ç»“æœ
 	ret=NFDATA;
-	//È¡ÏûÑ¡ÖĞflashĞ¾Æ¬ 
+	//å–æ¶ˆé€‰ä¸­flashèŠ¯ç‰‡ 
 	disselect_chip();
 }
  
 void NF_WritePage(unsigned long addr,unsigned char *buff)
 {
 	int ret,i;
-	//Ñ¡ÔñflashĞ¾Æ¬
+	//é€‰æ‹©flashèŠ¯ç‰‡
 	select_chip(); 
-	//Çå³ıRnB
+	//æ¸…é™¤RnB
 	clean_RnB();
-	//·¢ËÍÃüÁî0x80
+	//å‘é€å‘½ä»¤0x80
 	nand_cmd(0x80);
-	//·¢ËÍÁĞµØÖ·£¨2¸öÖÜÆÚ£©
+	//å‘é€åˆ—åœ°å€ï¼ˆ2ä¸ªå‘¨æœŸï¼‰
 	 nand_addr(0x00);
 	 nand_addr(0x00);
-	//·¢ËÍĞĞµØÖ·£¨3¸öÖÜÆÚ£©
+	//å‘é€è¡Œåœ°å€ï¼ˆ3ä¸ªå‘¨æœŸï¼‰
 	nand_addr(addr&0xff);
 	nand_addr((addr>>8)&0xff);
 	nand_addr((addr>>16)&0xff);
-	//Ğ´ÈëÊı¾İ
+	//å†™å…¥æ•°æ®
 	for(i=0;i<2048;i++)
 		NFDATA=buff[i]; 
-	//·¢ËÍÃüÁî0x10
+	//å‘é€å‘½ä»¤0x10
 	nand_cmd(0x10);
-	//µÈ´ıRnB
+	//ç­‰å¾…RnB
 	wait_RnB(); 
-	//·¢ËÍÃüÁî0x70
+	//å‘é€å‘½ä»¤0x70
 	nand_cmd(0x70); 
-	//¶ÁÈ¡²Á³ı½á¹û
+	//è¯»å–æ“¦é™¤ç»“æœ
 	ret=NFDATA;
-	//È¡ÏûÑ¡ÖĞflashĞ¾Æ¬ 
+	//å–æ¶ˆé€‰ä¸­flashèŠ¯ç‰‡ 
 	disselect_chip();
 }*/
 int NF_Erase(unsigned long addr)
 {
 	int ret;
 	
-	//Ñ¡ÖĞflashĞ¾Æ¬
+	//é€‰ä¸­flashèŠ¯ç‰‡
 	select_chip();
 	
-	//Çå³ıRnB
+	//æ¸…é™¤RnB
 	clean_RnB();
 	
-	//·¢ËÍÃüÁî60
+	//å‘é€å‘½ä»¤60
 	nand_cmd(0x60);
 	
-	//·¢ËÍĞĞµØÖ·£¨3¸öÖÜÆÚ£©
+	//å‘é€è¡Œåœ°å€ï¼ˆ3ä¸ªå‘¨æœŸï¼‰
 	nand_addr(addr&0xff);
     	nand_addr((addr >>8 ) & (0xff));
     	nand_addr((addr >>16 ) & (0xff));
 	
-	//·¢ËÍÃüÁîD0
+	//å‘é€å‘½ä»¤D0
 	nand_cmd(0xD0);
 	
-	//µÈ´ıRnB
+	//ç­‰å¾…RnB
 	wait_RnB();
 	
-	//·¢ËÍÃüÁî70
+	//å‘é€å‘½ä»¤70
 	nand_cmd(0x70);
 	
-	//¶ÁÈ¡²Á³ı½á¹û
+	//è¯»å–æ“¦é™¤ç»“æœ
 	ret = NFDATA;
 	
-	//È¡ÏûÑ¡ÖĞflashĞ¾Æ¬
+	//å–æ¶ˆé€‰ä¸­flashèŠ¯ç‰‡
 	disselect_chip();
 	
 	return ret;
@@ -194,43 +194,43 @@ int NF_WritePage(unsigned long addr,unsigned char* buff)
 {
 	int ret,i;
 	
-	//Ñ¡ÖĞflashĞ¾Æ¬
+	//é€‰ä¸­flashèŠ¯ç‰‡
 	select_chip();
 	
-	//Çå³ıRnB
+	//æ¸…é™¤RnB
 	clean_RnB();
 	
-	//·¢ËÍÃüÁî80
+	//å‘é€å‘½ä»¤80
 	nand_cmd(0x80);
 	
-	//·¢ËÍÁĞµØÖ·£¨2¸öÖÜÆÚ£©
+	//å‘é€åˆ—åœ°å€ï¼ˆ2ä¸ªå‘¨æœŸï¼‰
 	nand_addr(0x00);
     	nand_addr(0x00);
 	
-	//·¢ËÍĞĞµØÖ·£¨3¸öÖÜÆÚ£©
+	//å‘é€è¡Œåœ°å€ï¼ˆ3ä¸ªå‘¨æœŸï¼‰
 	nand_addr(addr&0xff);
     	nand_addr((addr >>8 ) & (0xff));
     	nand_addr((addr >>16 ) & (0xff));
 	
-	//Ğ´ÈëÊı¾İ
+	//å†™å…¥æ•°æ®
 	for(i=0;i<1024*2;i++)
 	{
 		NFDATA = buff[i];	
 	}
 	
-	//·¢ËÍÃüÁî10
+	//å‘é€å‘½ä»¤10
 	nand_cmd(0x10);
 	
-	//µÈ´ıRnB
+	//ç­‰å¾…RnB
 	wait_RnB();
 	
-	//·¢ËÍÃüÁî70
+	//å‘é€å‘½ä»¤70
 	nand_cmd(0x70);
 	
-	//¶ÁÈ¡Ğ´Èë½á¹û
+	//è¯»å–å†™å…¥ç»“æœ
 	ret = NFDATA;
 	
-	//È¡ÏûÑ¡ÖĞflashĞ¾Æ¬
+	//å–æ¶ˆé€‰ä¸­flashèŠ¯ç‰‡
 	disselect_chip();
 	
 	return ret;

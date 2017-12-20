@@ -1,5 +1,5 @@
 /*
-* ÓÃÓÚ¶ÎÃèÊö·ûµÄÒ»Ð©ºê¶¨Òå 
+* ç”¨äºŽæ®µæè¿°ç¬¦çš„ä¸€äº›å®å®šä¹‰ 
 */
 #define MMU_SECTION (2)
 #define MMU_BUFFERABLE (1<<2)
@@ -29,15 +29,15 @@ void mmu_init(void)
 {
 	__asm__(
 	
-	/*ÉèÖÃTTB*/
+	/*è®¾ç½®TTB*/
 	"ldr r0, =0x50000000\n"
 	"mcr p15, 0, r0, c2, c0, 0\n" 
 	
-	/*²»½øÐÐÈ¨ÏÞ¼ì²é*/
+	/*ä¸è¿›è¡Œæƒé™æ£€æŸ¥*/
 	"mvn r0,#0\n"
 	"mcr p15, 0, r0, c3, c0, 0\n" 
 	
-	/*Ê¹ÄÜmmu*/
+	/*ä½¿èƒ½mmu*/
 	"mrc p15, 0, r0, c1, c0, 0\n"
 	"orr r0, r0, #0x01\n"
 	"mcr p15, 0, r0, c1, c0, 0\n"

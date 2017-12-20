@@ -2,25 +2,35 @@
 #define ULCON0 	(*((volatile unsigned long*)0x7F005000))
 #define UCON0 	(*((volatile unsigned long*)0x7F005004))
 #define UMCON0 	(*((volatile unsigned long*)0x7F00500C))
-#define UBRDIV0 	(*((volatile unsigned long*)0x7F005028))
-#define UDIVSLOT0 	(*((volatile unsigned long*)0x7F00502C))
+#define UBRDIV0 	(*((volatile unsigned short*)0x7F005028))
+#define UDIVSLOT0 	(*((volatile unsigned short*)0x7F00502C))
 #define UTRSTAT0 	(*((volatile unsigned long*)0x7F005010))
-#define UTXH0 	(*((volatile unsigned long*)0x7F005020))
-#define URXH0 	(*((volatile unsigned long*)0x7F005024))
+#define UTXH0 	(*((volatile unsigned char*)0x7F005020))
+#define URXH0 	(*((volatile unsigned char*)0x7F005024))
 #define UFCON0     (*((volatile unsigned long *)0x7F005008))
+#define UINTP0      (*((volatile unsigned long *)0x7F005030))
+#define UINTSP0      (*((volatile unsigned long *)0x7F005034))
+#define UINTM0      (*((volatile unsigned long *)0x7F005038))
+
+#define VIC1INTENABLE (volatile unsigned long*)0x71300010
+#define VIC1INTENCLEAR (volatile unsigned long*)0x71300014
+#define VIC1VECTADDR5  (*(volatile unsigned long*)(0x71300114))
+#define VIC0ADDRESS        (*((volatile unsigned long *)0x71200f00))
+#define VIC1ADDRESS        (*((volatile unsigned long *)0x71300f00))
+#define VIC1IRQSTATUS (*(volatile unsigned long*)0x71300000)
 #define PCLK 66500000
 #define BAUD 115200
 void uart_init()
 {
-	//ÅäÖÃÒı½ø¹¦ÄÜ
+	//é…ç½®å¼•è¿›åŠŸèƒ½
 	GPACON&=~(0xff);
 	GPACON|=0x22;
-	//ÉèÖÃÊı¾İ¸ñÊ½ 
+	//è®¾ç½®æ•°æ®æ ¼å¼ 
 	ULCON0=0b11;
-	//ÉèÖÃ¹¤×÷Ä£Ê½
-	UFCON0 = 0x01; /* FIFO ENABLE */
-	UCON0=0x05;
-	//ÉèÖÃ²¨ÌØÂÊ 
+	//è®¾ç½®å·¥ä½œæ¨¡å¼
+	UFCON0 = 0x07 | (1<<6); /* FIFO ENABLE */
+	UCON0  = 0x5 | (1<<9);
+	//è®¾ç½®æ³¢ç‰¹ç‡ 
 	UBRDIV0=(int)(PCLK/(BAUD*16)-1);
 	UDIVSLOT0=0x0080;
 }
@@ -52,24 +62,35 @@ void uart_send_string(char *str)
 	putc(0x0a);
 } 
 
-#define VIC1INTENABLE (volatile unsigned long*)0x71300010
-#define VIC1VECTADDR5 (volatile unsigned long*)0x71300114
-#define VIC1ADDRESS (volatile unsigned long*)0x71300F00
-void uart_handle(void)
+
+void uart_irq(void)
 {
 	__asm__(
-	//±£»¤»·¾³£¬ÒòÎªÁ÷Ë®Ïß£¬pc+12£¬lr+8
 	"sub lr, lr, #4\n"
 	"stmfd sp!, {r0-r12,lr}\n"
 	:
 	:
 	);
-	printf("uart handle\n");
-	*(VIC1ADDRESS)=0;
+	unsigned char c;
+	*(VIC1INTENCLEAR)|=(1<<5);
+	if(UINTP0 & (1<<2))
+	{
+		printf("uart handle:send\n\r");
+	}else if(UINTP0 & (1<<0))
+	{
+		c=URXH0;
+		printf("uart handle:reciver:%c\n\r",c);
+	}
+	UINTP0=0xf;
+	UINTSP0=0xf;
+	//printf("usp:%d\tup:%d,inter:%x,interenable:%x,interaddr:%x\n\r", UINTSP0, UINTP0,\
+			VIC1IRQSTATUS, *VIC1INTENABLE, (VIC1ADDRESS));
+	VIC0ADDRESS=0;
+	VIC1ADDRESS=0;
+	*(VIC1INTENABLE)|=(1<<5);
 	__asm__(
 	"sub lr, lr, #4\n"
-	//^ÒâË¼ÊÇ°ÑSPSR¿½±´µ½CPSR
-	"ldmfd sp!, {r0-r12,pc}^\n"
+	"ldmfd sp!, {r0-r12,pc}^ \n"
 	:
 	:
 	);
@@ -77,8 +98,30 @@ void uart_handle(void)
 
 void uart_irqinit(void)
 {
-	UMCON0|=(1<<3); 
-	*(VIC1INTENABLE)|=(1<<6);
-	*(VIC1VECTADDR5)=(int)uart_handle;
+	UINTM0|=(1<<2);
+	UINTP0=0xf;
+	(*(volatile unsigned int*)(0x71300114))=(unsigned int)uart_irq;
+	*(VIC1INTENABLE)|=(1<<5);
+}
+
+
+void sleep(unsigned char s)
+{
+	unsigned char i=100,j=0;
+	while(s--)
+	{
+		while(i--)
+			j++;
+	}
+}
+void uart_while(void)
+{
+	while(1)
+	{
+		unsigned char usp=UINTSP0;
+		unsigned char up=UINTP0;
+		//printf("usp:%d\tup:%d,inter:%x,interenable:%x,interaddr:%x\n\r",usp,up,VIC1IRQSTATUS,*VIC1INTENABLE,(VIC1ADDRESS));
+		sleep(255);
+	}
 }
 

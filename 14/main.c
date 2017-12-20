@@ -16,6 +16,7 @@ char *buf="I love linux\n";
 int gboot_main()
 {
 	int num;
+	int i=100;
 	#ifdef mmu_on
 	mmu_enable();
 	#endif
@@ -24,6 +25,8 @@ int gboot_main()
     button_init();
 	init_irq();
 	uart_init();
+	uart_irqinit();
+	uart_while();
 	putc('A');
 	printf("B\r\n");
 	uart_send_string(buf);
@@ -31,7 +34,7 @@ int gboot_main()
 	{
 		printf("*******************************************\n\r");
 		printf("********************GBOOT******************\n\r");
-		printf("1:Download Linux Kernel from TFTP Server£°\n\r");
+		printf("1:Download Linux Kernel from TFTP ServerÔºÅ\n\r");
 		printf("2:Boot Linux from RAM!\n\r");
 		printf("3:Boot Linux from Nand Flash\n\r");
 		printf("\n Please Select:"); 

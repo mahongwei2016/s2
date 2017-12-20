@@ -438,14 +438,14 @@ int vsnprintf(char *buf, size_t size, const char *fmt, va_list args)
 				break;
 
 			case 'X':
-				flags |= LARGE;
+				flags |= LARGE;break;
 			case 'x':
 				base = 16;
 				break;
 
 			case 'd':
 			case 'i':
-				flags |= SIGN;
+				flags |= SIGN;break;
 			case 'u':
 				break;
 
@@ -740,9 +740,9 @@ int vsscanf(const char * buf, const char * fmt, va_list args)
 			base = 16;
 			break;
 		case 'i':
-                        base = 0;
+                        base = 0;break;
 		case 'd':
-			is_sign = 1;
+			is_sign = 1;break;
 		case 'u':
 			break;
 		case '%':

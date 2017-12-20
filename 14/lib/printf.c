@@ -5,11 +5,11 @@ int printf(const char* fmt,...)
 {
 	va_list args;
 	int i;
-	//1.½«±ä²Î×ª»»Îª×Ö·û´®
+	//1.å°†å˜å‚è½¬æ¢ä¸ºå­—ç¬¦ä¸²
 	va_start(args,fmt);
 	vsprintf((char*)outbuff,fmt,args);
 	va_end();
-	//2.´òÓ¡×Ö·û´®µ½´®¿Ú
+	//2.æ‰“å°å­—ç¬¦ä¸²åˆ°ä¸²å£
 	for(i=0;i<strlen(outbuff);i++)
 		putc(outbuff[i]); 
 	return 1;
@@ -19,7 +19,7 @@ int scanf(const char* fmt,...)
 	unsigned char c;
 	va_list args;
 	int i=0;
-	//»ñÈ¡ÊäÈëµÄ×Ö·û´®
+	//è·å–è¾“å…¥çš„å­—ç¬¦ä¸²
 	while(1)
 	{
 		c=getc();
@@ -33,7 +33,7 @@ int scanf(const char* fmt,...)
 			inbuff[i++]=c;	
 		}	
 	} 
-	//¸ñÊ½×ª»»
+	//æ ¼å¼è½¬æ¢
 	va_start(args,fmt); 
 	vsscanf((char*)inbuff,fmt,args);
 	va_end(args);
