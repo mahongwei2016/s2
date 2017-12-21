@@ -9,7 +9,7 @@ all: start.o mem.o dev/dev.o lib/lib.o main.o
 	arm-linux-gcc -g -c $^
 	
 %.o : %.c
-	arm-linux-gcc $(CFLAGS)-g -c $^
+	arm-linux-gcc $(CFLAGS) -g -c $^
 	
 lib/lib.o:
 	make -C lib all

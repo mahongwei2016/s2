@@ -4,10 +4,10 @@ all : $(objs)
 	arm-linux-ld -r -o dev.o $^
 	
 %.o : %.c
-	arm-linux-gcc ${CFLAGS} -c $^
+	arm-linux-gcc ${CFLAGS} -g -c $^
 	
 %.o : %.S
-	arm-linux-gcc ${CFLAGS} -c $^
+	arm-linux-gcc ${CFLAGS} -g -c $^
 
 clean:
 	rm -f *.o		
