@@ -23,7 +23,7 @@ void do_irq()
 	);
 	VIC0INTENCLEAR|=(1<<23)|(1<<27);
 	do_irqi++;
-	printf1("do_irqi:%d\n",do_irqi);
+	printf("do_irqi:%d\n\r",do_irqi);
 	unsigned long uTmp;	
 	//清timer0的中断状态寄存器	
 	uTmp = TINT_CSTAT;	
@@ -33,7 +33,6 @@ void do_irq()
 	VIC0INTENABLE|=(1<<27)|(1<<23);
 	__asm__(
 	//^意思是把SPSR拷贝到CPSR
-	"sub lr, lr, #4\n"
 	"ldmfd sp!, {r0-r12,pc}^\n"
 	:
 	:
@@ -180,7 +179,7 @@ static  void notify_info_data(unsigned char _lcd_type,
 	if (_lcd_type != 0xFF) {
 		lcd_type = _lcd_type;
 		gLCD_Type = lcd_type;
-		//printf("lcd type:%x\r\n",lcd_type);
+		printf("lcd type:%x\r\n",lcd_type);
 		firmware_ver = ver_year * 100 + week;
 	}
 }
@@ -227,14 +226,13 @@ static void one_wire_session_complete(unsigned char req, unsigned int res)
 
 	if (crc != p[0]) {
 		// 调试时可以打开，不会影响时序
-		printf1("CRC dismatch\r\n");
-		if (total_received > 100) {
-			total_error++;			
-		}
+		//printf("CRC dismatch\r\n");
+		//if (total_received > 100) {
+		//}
 		return;
 	}
 
-	printf1("CRC match\r\n");
+	printf("CRC match\r\n");
 	switch(req) {
 		// 触摸要求
 		case REQ_TS:
@@ -371,17 +369,18 @@ void timer_for_1wire_interrupt(void)
 {
 	
 	__asm__(
-	"sub lr, lr, #4\n"
-	"stmfd sp!, {r0-r12,lr}\n"
-	:
-	:
-	);
+		//保护环境，因为流水线，pc+12，lr+8
+		"sub lr, lr, #4\n"
+		"stmfd sp!, {r0-r12,lr}\n"
+		:
+		:
+		);
 	VIC0INTENCLEAR|=(1<<27)|(1<<23);
 
 	// 清中断
- 	/*io_bit_count--;
+ 	io_bit_count--;
 
- 	//printf1("one_wire_status:%d\r\n",one_wire_status);
+ 	//printf("one_wire_status:%d\r\n",one_wire_status);
 	switch(one_wire_status) 
 	{
 	case START:
@@ -436,10 +435,12 @@ void timer_for_1wire_interrupt(void)
 		
 	default:
 		stop_timer_for_1wire();
-	}*/
+	}
+	//printf("irq\n\r");
 	unsigned long uTmp;	
 	//清timer0的中断状态寄存器	
-	TINT_CSTAT |= 0x108;
+	uTmp=TINT_CSTAT;
+	TINT_CSTAT |= uTmp;
 	VIC0ADDRESS = 0;
 	VIC1ADDRESS = 0;
 	VIC0INTENABLE|=(1<<27)|(1<<23);
@@ -511,7 +512,8 @@ void One_Wire_Timer_Proc()
 	{
 		req = REQ_TS;
 	}
-	printf("req:%d\r\n",req);
+
+
 
 	start_one_wire_session(req);
 
@@ -607,21 +609,38 @@ void lcd_back_light(void)
 // 初始化LCD
 void lcd_init(void)
 {
-	printf("mhw\r\n");
-	int i=0;
+
 	TS_1wire_Init();
-	while(1)
-		printf("i:%d\n\r",i++);
+	/*while(1)
+	{
+		static int i=0;
+		VIC0INTENCLEAR|=(1<<27)|(1<<23);
+		printf("i:%d\n\r",i);
+		VIC0INTENABLE|=(1<<27)|(1<<23);
+		i++;
+		if(i==100)
+			while(1);
+	}*/
 	while(!gLCD_Type)
 	{
+		/*One_Wire_Timer_Proc();
+		VIC0INTENCLEAR|=(1<<27)|(1<<23);
+		printf("gLCD_Type:%d\n\r",gLCD_Type);
+		VIC0INTENABLE|=(1<<27)|(1<<23);*/
 		One_Wire_Timer_Proc();
-		printf("gLCD_Type:%d\n",gLCD_Type);
+		delay(100);
 	}
+	VIC0INTENCLEAR|=(1<<27)|(1<<23);
+	printf("gLCD_Type:%x\n\r",gLCD_Type);
+	VIC0INTENABLE|=(1<<27)|(1<<23);
 	while(!backlight_init_success)
 	{
 		One_Wire_Timer_Proc();
-
+		delay(100);delay(100);delay(100);
 	}
+	VIC0INTENCLEAR|=(1<<27)|(1<<23);
+	printf("light on\n\r");
+	VIC0INTENABLE|=(1<<27)|(1<<23);
 	TCON &= ~(1<<0);
 	//lcd_back_light();
 	// 配置GPIO用于LCD相关的功能

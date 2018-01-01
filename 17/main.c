@@ -1,4 +1,4 @@
-
+#include "s3c6410.h"
 
 #define nand_page_to_write 64*20+1
 void delay(char i)
@@ -36,14 +36,25 @@ int gboot_main()
 	uart_send_string(buf);
 	dma_init();
 	dma_start();
-	timer_init();
-	int i=0;
-	while(1)
+	//timer_init();
+
+	/*while(1)
 	{
 		i++;
 		printf("i:%d\n\r",i);
-	}
+	}*/
+	/*TS_1wire_Init();
+	while(1)
+	{
+		static int j=0;
+		VIC0INTENCLEAR|=(1<<27)|(1<<23);
+		printf("j:%d\n\r",j);
+		VIC0INTENABLE|=(1<<27)|(1<<23);
+		j++;
+	}*/
 	lcd_init();
+	lcd_clear_screen(0x4562);
+	while(1);
 	printf("lcd test1\r\n");
 	lcd_clear_screen(300);
 	printf("lcd test\r\n");
@@ -54,7 +65,7 @@ int gboot_main()
 		static int j=0;
 		j++;
 		arp_request(j);
-		delay(10000);
+		delay(100);
 	}
 	while(1)
 	{
