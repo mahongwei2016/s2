@@ -1,7 +1,7 @@
 @****************************
 @File:start.S
 @
-@���ΰ
+@????
 @****************************
 
 .text
@@ -61,14 +61,14 @@ reset:
 		bl clean_bss
 		ldr pc, =gboot_main
 		
-//����������ַ����������ַд��cp15 c15 c2�Ĵ��� 
+//??????????????????????ÐŽ??cp15 c15 c2????? 
 set_peri_port:
 		ldr r0, =0x70000000
 		orr r0, r0, #0x13
 		mcr p15, 0, r0, c15, c2, 4
 		mov pc, lr
 
-//����cpu��SVCģʽ����0xd3д��cpsr��		
+//????cpu??SVC??????0xd3ÐŽ??cpsr??		
 set_svc:
 		mrs r0, cpsr
 		bic r0, r0, #0x1f
@@ -76,7 +76,7 @@ set_svc:
 		msr cpsr, r0
 		mov pc, lr
 
-//����watchdog����WATCON�����λ����������watchdog 
+//????watchdog????WATCON?????Î»??????????watchdog 
 #define pWTCON 0x7e004000
 disable_watchdog:
 		ldr r0, =pWTCON
@@ -84,7 +84,7 @@ disable_watchdog:
 		str r1, [r0]
 		mov pc, lr
 		
-//�����жϣ������VICxINTENCLEAR�Ĵ���д��ȫ1������ж�ʹ�ܡ� 
+//?????Ð¶???????VICxINTENCLEAR?????ÐŽ???1??????Ð¶????? 
 disable_interrupt:
 		ldr r0,	=0x71200014
 		mvn r1, #0x0
@@ -93,10 +93,10 @@ disable_interrupt:
 		str r1, [r0]
 		mov pc, lr
 
-//����mmu��	1.��cp15 c7 c7 д���ⶫ����ʹ I/D cache��Ч 
-//			2.��cp15 c1 c0 ��0,2λд��0���ֱ����mmu��d cache 
+//????mmu??	1.??cp15 c7 c7 ÐŽ????????? I/D cache??Ð§ 
+//			2.??cp15 c1 c0 ??0,2Î»ÐŽ??0????????mmu??d cache 
 disable_mmu:
-		//����I/D cache 
+		//????I/D cache 
 		mcr p15, 0, r0, c7, c7, 0
 		mrc p15, 0, r0, c1, c0, 0
 		bic r0, r0, #0x05
@@ -117,33 +117,33 @@ PCLK:	66M
 #define CLK_DIV0 0x7E00F020
 #define DIV_VAL ((0<<0)|(0<<4)|(1<<9)|(1<<8)|(3<<12))
 clock_init:
-		//��Ϊcpu���������ߵ�ʱ�Ӳ�ͬ���������cpu���첽ģʽ 
+		//???cpu?????????????????????????cpu?????? 
 		ldr r0, =OTHERS
 		ldr r1, [r0]
 		bic r1,r1, #0xc0
 		str r1, [r0]
 		
-		//armclock=APLL��PLLclock=MPLL/2,HCLK=HCLKx2 /2,HCLKx2=HCLKx2in /2,PCLK=HCLKx2 /4
+		//armclock=APLL??PLLclock=MPLL/2,HCLK=HCLKx2 /2,HCLKx2=HCLKx2in /2,PCLK=HCLKx2 /4
 		ldr r0, =CLK_DIV0
 		ldr r1, =DIV_VAL
 		str r1, [r0]
 		
-		//����APLL��533M 
+		//????APLL??533M 
 		ldr r0, =APLL_CON
 		ldr r1,=PLL_VALUE
 		str r1, [r0]
 
-		//����MPLL��533M
+		//????MPLL??533M
 		ldr r0, =MPLL_CON
 		ldr r1, =PLL_VALUE
 		str r1, [r0]
 		
-		//Ϊ����clockѡ����ȷ��ʱ��Դ 
+		//?????clock???????????? 
 		ldr r0, =CLK_SRC
 		mov r1, #0x03
 		str r1, [r0]
 		mov pc,lr
-//�������룺�ӵ��ʯ����4K���ڴ��0x50008000�� 
+//?????????????????4K??????0x50008000?? 
 copy_to_ram:
 		ldr r0, =0x0C000000
 		ldr r1, =0x50008000
@@ -167,16 +167,16 @@ copy_nand_to_ram:
 		mov lr, ip
 		mov pc, lr
 
-//���ջ������cpu�����ж�ģʽ�������жϵ�ջ��0x5300000-0x53ffffff
-//		  ��cpu����svcģʽ������svc��ջ��0x54000000-0x5fffffff		
+//??????????cpu?????Ð¶??????????Ð¶?????0x5300000-0x53ffffff
+//		  ??cpu????svc????????svc?????0x54000000-0x5fffffff		
 init_stack:
-		msr cpsr, #0xd2
-		ldr sp, =0x54000000
-		msr cpsr, #0xd3
+		msr cpsr_c, #0xd2
 		ldr sp, =0x53000000
+		msr cpsr_c, #0xd3
+		ldr sp, =0x54000000
 		mov pc, lr
 
-//���bss�Σ�bss�ο�ͷ��β����lds�ļ��ж����˱�š� 
+//???bss?Î£?bss?Î¿????Î²????lds????Ð¶???????? 
 clean_bss:
 		ldr r0, =bss_start
 		ldr r1, =bss_end
@@ -200,4 +200,18 @@ led_on:
 		str r1, [r0]
 		mov pc, lr
 		
+.global mhwirq
+mhwirq:
+	sub lr, lr, #4
+	stmdb sp!, {r0-r12, lr}
+	bl mhw_irq
+	ldmia sp!, {r0-r12, pc}^
+
+.global mhwirq2
+mhwirq2:
+	sub lr, lr, #4
+	stmdb sp!, {r0-r12, lr}
+	bl timer_for_1wire_interrupt1
+	ldmia sp!, {r0-r12, pc}^
+
 

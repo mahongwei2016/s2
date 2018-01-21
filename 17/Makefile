@@ -4,6 +4,7 @@ all: start.o mem.o dev/dev.o lib/lib.o main.o
 	arm-linux-ld -Tgboot.lds -o gboot.elf $^
 	arm-linux-objcopy -O binary gboot.elf gboot.bin
 	cp gboot.bin ../../
+	cp gboot.bin /tftpboot/
 	
 %.o : %.S
 	arm-linux-gcc -g -c $^

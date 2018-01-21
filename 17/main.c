@@ -1,5 +1,6 @@
 #include "s3c6410.h"
-
+extern unsigned char *gImage_bmp;
+extern int gLCD_Type;
 #define nand_page_to_write 64*20+1
 void delay(char i)
 {
@@ -36,29 +37,22 @@ int gboot_main()
 	uart_send_string(buf);
 	dma_init();
 	dma_start();
-	//timer_init();
-
-	/*while(1)
-	{
-		i++;
-		printf("i:%d\n\r",i);
-	}*/
-	/*TS_1wire_Init();
+	/*timer_init();
 	while(1)
 	{
-		static int j=0;
-		VIC0INTENCLEAR|=(1<<27)|(1<<23);
-		printf("j:%d\n\r",j);
-		VIC0INTENABLE|=(1<<27)|(1<<23);
-		j++;
+		int i=0;
+		i++;
+		//printf("i:%d\n\r",i);
 	}*/
 	lcd_init();
-	lcd_clear_screen(0x4562);
+	Lcd_Init(gLCD_Type);
+	delay(200);
+	printf("lcd clear!\r\n");
+	lcd_clear_screen(0xffff00);
+	Lcd_Draw_Bmp(gImage_bmp,gLCD_Type);
+	One_Wire_Timer_Proc();
 	while(1);
-	printf("lcd test1\r\n");
-	lcd_clear_screen(300);
-	printf("lcd test\r\n");
-	//lcd_test(); 
+	delay(200);
 	dm9000_init();
 	while(1)
 	{

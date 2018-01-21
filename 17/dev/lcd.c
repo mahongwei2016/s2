@@ -1,10 +1,11 @@
 //#include "lcd.h"
 #include "int.h"
 #include "s3c6410.h"
+#include "bmp.h"
 
 
-
-
+void mhwirq(void);
+void mhwirq2(void);
 void timer0_irq_init(void)
 {	
 	/* 在中断控制器里使能timer0中断 */	
@@ -12,6 +13,21 @@ void timer0_irq_init(void)
 }
 // timer0中断的中断处理函数
 int do_irqi=0;
+void mhw_irq()
+{
+
+	VIC0INTENCLEAR|=(1<<23);
+	do_irqi++;
+	printf("do_irqi:%d\n\r",do_irqi);
+	unsigned long uTmp;
+	//清timer0的中断状态寄存器
+	uTmp = TINT_CSTAT;
+	TINT_CSTAT = uTmp;
+	VIC0ADDRESS = 0;
+	VIC1ADDRESS = 0;
+	VIC0INTENABLE|=(1<<23);
+
+}
 void do_irq()
 {	
 	__asm__(
@@ -71,7 +87,7 @@ void timer_init(void)
 	// 自动加载和启动timer0	
 	TCON |= (1<<0)|(1<<3);
 
-	pISR_TIMER0 = (unsigned long)do_irq;
+	pISR_TIMER0 = (unsigned long)mhwirq;
 	intc_enable(NUM_TIMER0);
 	
 	// 使能timer0中断	
@@ -179,7 +195,7 @@ static  void notify_info_data(unsigned char _lcd_type,
 	if (_lcd_type != 0xFF) {
 		lcd_type = _lcd_type;
 		gLCD_Type = lcd_type;
-		printf("lcd type:%x\r\n",lcd_type);
+		//printf("lcd type:%x\r\n",lcd_type);
 		firmware_ver = ver_year * 100 + week;
 	}
 }
@@ -232,7 +248,7 @@ static void one_wire_session_complete(unsigned char req, unsigned int res)
 		return;
 	}
 
-	printf("CRC match\r\n");
+	//printf("CRC match\r\n");
 	switch(req) {
 		// 触摸要求
 		case REQ_TS:
@@ -365,26 +381,19 @@ void intc_enable(unsigned long intnum)
 }
 #define GPKCON (volatile unsigned long*)0x7f008800
 #define GPKDAT (volatile unsigned long*)0x7f008808
-void timer_for_1wire_interrupt(void)
-{
-	
-	__asm__(
-		//保护环境，因为流水线，pc+12，lr+8
-		"sub lr, lr, #4\n"
-		"stmfd sp!, {r0-r12,lr}\n"
-		:
-		:
-		);
-	VIC0INTENCLEAR|=(1<<27)|(1<<23);
 
+void timer_for_1wire_interrupt1(void)
+{
+	//VIC0INTENCLEAR|=(1<<27)|(1<<23);
+	//VIC0INTENCLEAR|=(1<<27);
 	// 清中断
  	io_bit_count--;
 
  	//printf("one_wire_status:%d\r\n",one_wire_status);
-	switch(one_wire_status) 
+	switch(one_wire_status)
 	{
 	case START:
-		if (io_bit_count == 0) 
+		if (io_bit_count == 0)
 		{
 			io_bit_count = 16;
 			one_wire_status = REQUEST;
@@ -400,7 +409,7 @@ void timer_for_1wire_interrupt(void)
 			one_wire_status = WAITING;
 		}
 		break;
-		
+
 	case WAITING:
 		// 2次
 		if (io_bit_count == 0) {
@@ -412,7 +421,7 @@ void timer_for_1wire_interrupt(void)
 			set_pin_value(1);
 		}
 		break;
-		
+
 	case RESPONSE:
 		// 32次，
 		io_data = (io_data << 1) | get_pin_value();
@@ -432,25 +441,21 @@ void timer_for_1wire_interrupt(void)
 			stop_timer_for_1wire();
 		}
 		break;
-		
+
 	default:
 		stop_timer_for_1wire();
 	}
 	//printf("irq\n\r");
-	unsigned long uTmp;	
-	//清timer0的中断状态寄存器	
+	unsigned long uTmp;
+	//清timer0的中断状态寄存器
 	uTmp=TINT_CSTAT;
 	TINT_CSTAT |= uTmp;
+ 	//VIC0INTENABLE|=(1<<27)|(1<<23);
+	//VIC0INTENABLE|=(1<<27);
 	VIC0ADDRESS = 0;
 	VIC1ADDRESS = 0;
-	VIC0INTENABLE|=(1<<27)|(1<<23);
-	__asm__(
-	"ldmfd sp!, {r0-r12,pc}^\n"
-	:
-	:
-	);
-
 }
+
 static void start_one_wire_session(unsigned char req)
 {
 	unsigned char crc;
@@ -513,11 +518,9 @@ void One_Wire_Timer_Proc()
 		req = REQ_TS;
 	}
 
-
-
 	start_one_wire_session(req);
-
 }
+
 void TS_1wire_Init()
 {
 	set_pin_as_output();
@@ -528,13 +531,14 @@ void TS_1wire_Init()
 	init_timer_for_1wire();
 
 	// 使能timer3的中断
-	pISR_TIMER3 = (unsigned long)timer_for_1wire_interrupt;
+	pISR_TIMER3 = (unsigned long)mhwirq2;
 	intc_enable(NUM_TIMER3);
 	TINT_CSTAT |= 0x108;
 
 	// 开始一线处理
 	One_Wire_Timer_Proc();
 }
+
 /*
 #define GPECON  (*((volatile unsigned long *)0x7F008080))
 #define GPEDAT  (*((volatile unsigned long *)0x7F008084))
@@ -606,204 +610,310 @@ void lcd_back_light(void)
 
 
 }
+// FB��ַ
+int gFB_Addr = 0x54000000;
+int gRow,gCol;
+int gLeftTopX, gLeftTopY, gRightBotX, gRightBotY;
+unsigned char *gImage_bmp;
+
+
+// ��ʼ��LCD
+void Lcd_Init(int lcd_type)
+{	
+	int hspw,hbpd,hfpd,vspw,vbpd,vfpd,vsync,hsync,clkval_f; 			
+	
+		// ����GPIO����LCD��صĹ���
+		GPECON = 0x00011111;
+		GPEDAT = 0x00000001;	
+		GPFCON = 0x96AAAAAA;
+		GPFDAT = 0x00002000;
+		GPICON = 0xAAAAAAAA;
+		GPJCON = 0x00AAAAAA;
+	
+		// normal mode
+		MIFPCON &= ~(1<<3);
+	
+		// RGB I/F
+		SPCON =  (SPCON & ~(0x3)) | 1;
+	
+		gLeftTopX = 0;
+		gLeftTopY = 0;
+	
+		switch(lcd_type)
+		{
+			case 0x13:				// p43
+			{
+				gImage_bmp = gImage_480272;
+	
+				gRow=272;
+				gCol=480;	
+				gRightBotX	= gCol-1;
+				gRightBotY	= gRow-1;
+	
+				clkval_f = 12;
+				hspw = (2);
+				hbpd = (40 - 1);
+				hfpd = (5-1);
+				vspw = (2);
+				vbpd = (8 - 1);
+				vfpd = (9 - 1);
+	
+				vsync = 1;
+				hsync = 1;
+				
+				break;			
+			}
+			case 0xe:				// h43
+			{
+//				gImage_bmp = gImage_480272;
+	
+				gRow=272;
+				gCol=480;	
+				gRightBotX	= gCol-1;
+				gRightBotY	= gRow-1;
+	
+				clkval_f = 9;
+				hspw = (0);
+				hbpd = (40 - 1);
+				hfpd = (5 - 1);
+				vspw = (0);
+				vbpd = (8 - 1);
+				vfpd = (8 - 1);
+	
+				vsync = 1;
+				hsync = 1;
+				
+				break;
+			}
+			// n43
+			case 0x1:
+			{
+//				gImage_bmp = gImage_480272;
+	
+				gRow=272;
+				gCol=480;	
+				gRightBotX	= gCol-1;
+				gRightBotY	= gRow-1;
+	
+				clkval_f = 9;
+				hspw = 0x6;
+				hbpd = 0x2d;
+				hfpd = 0x4;
+				vspw = 0x2;
+				vbpd = 0x3;
+				vfpd = 0x2;
+	
+				vsync = 0;
+				hsync = 0;
+				
+				break;
+			}
+			// s70
+			case 0x3:
+			{
+//				gImage_bmp = gImage_800480;
+	
+				gRow=480;
+				gCol=800;	
+				gRightBotX	= gCol-1;
+				gRightBotY	= gRow-1;
+	
+				clkval_f = 9;
+				hspw = 0x2;
+				hbpd = 0x2c;
+				hfpd = 0xd2;
+				vspw = 0x02;
+				vbpd = 0x15;
+				vfpd = 0x16;
+	
+				vsync = 1;
+				hsync = 1;
+				
+				break;
+			}
+			// A70
+			case 0x2:
+			{
+//				gImage_bmp = gImage_800480;
+	
+				gRow=480;
+				gCol=800;	
+				gRightBotX	= gCol-1;
+				gRightBotY	= gRow-1;
+	
+				clkval_f = 9;
+				hspw = 0x30;
+				hbpd = 0x28;
+				hfpd = 0x28;
+				vspw = 0x18;
+				vbpd = 0x1d;
+				vfpd = 0x11;
+	
+				vsync = 1;
+				hsync = 1;
+				
+				break;
+			}
+			// W50
+			case 0x4:
+			{
+//			gImage_bmp = gImage_800480;
+	
+				gRow=480;
+				gCol=800;	
+				gRightBotX	= gCol-1;
+				gRightBotY	= gRow-1;
+	
+				clkval_f = 9;
+				hspw = 48;
+				hbpd = 40;
+				hfpd = 40;
+				vspw = 12;
+				vbpd = 20;
+				vfpd = 20;
+	
+				vsync = 1;
+				hsync = 1;
+				
+				break;
+			}
+		}
+		// ����VIDCONx�����ýӿ����͡�ʱ�ӡ����Ժ�ʹ��LCD��������
+		VIDCON0 = (0<<26)|(0<<17)|(0<<16)|(clkval_f<<6)|(0<<5)|(1<<4)|(0<<2)|(3<<0);
+	
+		// ����ʱ��
+		VIDCON1 |= vsync<<5 | hsync<<6 | 1<<7;
+		VIDTCON0 = vbpd<<16 | vfpd<<8 | vspw<<0;
+		VIDTCON1 = hbpd<<16 | hfpd<<8 | hspw<<0;
+		// ���ó���
+		VIDTCON2 = (gRightBotY << 11) | (gRightBotX << 0);
+		
+		// ����windows1
+		// bit[0]:ʹ��
+		// bit[2~5]:24bpp
+		WINCON0 |= 1<<0;
+		WINCON0 &= ~(0xf << 2);
+		WINCON0 |= (0xB<<2) | (1<<15);
+	
+		// ����windows1����������
+		VIDOSD0A = (gLeftTopX<<11) | (gLeftTopY << 0);
+		VIDOSD0B = (gRightBotX<<11) | (gRightBotY << 0);
+		VIDOSD0C = (gRightBotY + 1) * (gRightBotX + 1);
+	
+		// ����fb�ĵ�ַ
+		VIDW00ADD0B0 = gFB_Addr;
+		VIDW00ADD1B0 = (((gRightBotX + 1)*4 + 0) * (gRightBotY + 1)) & (0xffffff);
+	
+		//DITHMODE = 0;
+
+	
+}
+
+
+
+
+
 // 初始化LCD
 void lcd_init(void)
 {
 
 	TS_1wire_Init();
-	/*while(1)
-	{
-		static int i=0;
-		VIC0INTENCLEAR|=(1<<27)|(1<<23);
-		printf("i:%d\n\r",i);
-		VIC0INTENABLE|=(1<<27)|(1<<23);
-		i++;
-		if(i==100)
-			while(1);
-	}*/
 	while(!gLCD_Type)
 	{
-		/*One_Wire_Timer_Proc();
-		VIC0INTENCLEAR|=(1<<27)|(1<<23);
-		printf("gLCD_Type:%d\n\r",gLCD_Type);
-		VIC0INTENABLE|=(1<<27)|(1<<23);*/
 		One_Wire_Timer_Proc();
 		delay(100);
 	}
-	VIC0INTENCLEAR|=(1<<27)|(1<<23);
-	printf("gLCD_Type:%x\n\r",gLCD_Type);
-	VIC0INTENABLE|=(1<<27)|(1<<23);
-	while(!backlight_init_success)
+
+	/*while(!backlight_init_success)
 	{
 		One_Wire_Timer_Proc();
-		delay(100);delay(100);delay(100);
-	}
-	VIC0INTENCLEAR|=(1<<27)|(1<<23);
-	printf("light on\n\r");
-	VIC0INTENABLE|=(1<<27)|(1<<23);
-	TCON &= ~(1<<0);
-	//lcd_back_light();
-	// 配置GPIO用于LCD相关的功能
-	GPECON = 0x00011111;
-	GPEDAT = 0x00000001;	
-	GPFCON = 0x96AAAAAA;
-	GPFDAT = 0x00002000;
-	GPICON = 0xAAAAAAAA;
-	GPJCON = 0x00AAAAAA;
-
-	// normal mode
-	MIFPCON &= ~(1<<3);
-
-	// RGB I/F
-	SPCON =  (SPCON & ~(0x3)) | 1;
-
-	// 配置VIDCONx，设置接口类型、时钟、极性和使能LCD控制器等
-	VIDCON0 = (0<<26)|(0<<17)|(0<<16)|(12<<6)|(0<<5)|(1<<4)|(0<<2)|(3<<0);
-	VIDCON1 |= 1<<5 | 1<<6;
-
-	// 配置VIDTCONx，设置时序和长宽等
-	// 设置时序
-	VIDTCON0 = VBPD<<16 | VFPD<<8 | VSPW<<0;
-	VIDTCON1 = HBPD<<16 | HFPD<<8 | HSPW<<0;
-	// 设置长宽
-	VIDTCON2 = (LINEVAL << 11) | (HOZVAL << 0);
-
-
-	// 配置WINCON0，设置window0的数据格式
-	WINCON0 |= 1<<0;
-	WINCON0 &= ~(0xf << 2);
-	WINCON0 |= 0xB<<2;
-
-	// 配置VIDOSD0A/B/C,设置window0的坐标系
-#define LeftTopX     0
-#define LeftTopY     0
-#define RightBotX   479
-#define RightBotY   271
-	VIDOSD0A = (LeftTopX<<11) | (LeftTopY << 0);
-	VIDOSD0B = (RightBotX<<11) | (RightBotY << 0);
-	VIDOSD0C = (LINEVAL + 1) * (HOZVAL + 1);
-
-	// 置VIDW00ADD0B0和VIDW00ADD1B0，设置framebuffer的地址
-	VIDW00ADD0B0 = FRAME_BUFFER;
-	VIDW00ADD1B0 = (((HOZVAL + 1)*4 + 0) * (LINEVAL + 1)) & (0xffffff);
-	return;
+		delay(100);
+		delay(100);
+		delay(100);
+	}*/
+	//TCON &= ~(1<<0);
 }
 
-// 描点
+// ���
 void lcd_draw_pixel(int row, int col, int color)
 {
-	unsigned long * pixel = (unsigned long  *)FRAME_BUFFER;
+	unsigned long * pixel = (unsigned long  *)gFB_Addr;
 
-	*(pixel + row * COL + col) = color;
+	*(pixel + row * gCol + col) = color;
 
 }
 
-// 清屏
+// ����
 void lcd_clear_screen(int color)
 {
 	int i, j;
 
-	for (i = 0; i < ROW; i++)
-		for (j = 0; j < COL; j++)
+	for (i = 0; i < gRow; i++)
+		for (j = 0; j < gCol; j++)
 			lcd_draw_pixel(i, j, color);
 
 }
 
-// 划横线
+// ������
 void lcd_draw_hline(int row, int col1, int col2, int color)
 {
 	int j;
 
-	// 描第row行，第j列
+	// ���row�У���j��
 	for (j = col1; j <= col2; j++)
 		lcd_draw_pixel(row, j, color);
 
 }
 
-// 划竖线
+// ������
 void lcd_draw_vline(int col, int row1, int row2, int color)
 {
 	int i;
-	// 描第i行，第col列
+	// ���i�У���col��
 	for (i = row1; i <= row2; i++)
 		lcd_draw_pixel(i, col, color);
 
 }
 
-// 划十字
+// ��ʮ��
 void lcd_draw_cross(int row, int col, int halflen, int color)
 {
 	lcd_draw_hline(row, col-halflen, col+halflen, color);
 	lcd_draw_vline(col, row-halflen, row+halflen, color);
 }
 
-// 绘制同心圆
-void lcd_draw_circle(void)
+
+
+void Lcd_Draw_Bmp(const unsigned char gImage_bmp[], int lcd_type)
 {
-	int x,y;
-	int color;
-	unsigned char red,green,blue,alpha;
-	int xsize = ROW;
-	int ysize = COL;
-
-	for (y = 0; y < ysize; y++)
-		for (x = 0; x < xsize; x++)
-		{
-			color = ((x-xsize/2)*(x-xsize/2) + (y-ysize/2)*(y-ysize/2))/64;
-			red   = (color/8) % 256;
-			green = (color/4) % 256;
-			blue  = (color/2) % 256;
-			alpha = (color*2) % 256;
-
-			color |= ((int)alpha << 24);
-			color |= ((int)red   << 16);
-			color |= ((int)green << 8 );
-			color |= ((int)blue       );
-
-			lcd_draw_pixel(x,y,color);
-		}
-}
-void point(int row, int col, int color)
-{
-    unsigned long *point = (unsigned long*)FRAME_BUFFER;
-    *(point + row*480 + col) = color;
-}
-
-void Paint_Bmp(const unsigned char gImage_bmp[])
-{
-	int i, j;
+	int i, j, offset;
 	unsigned char *p = (unsigned char *)gImage_bmp;
 	int blue, green, red;
 	int color;
 
-	// 图片大小200x200像素
-	for (i = 0; i < 200; i++)
-		for (j = 0; j < 200; j++)
+	lcd_clear_screen(0x0);
+
+	if(gLCD_Type == 0x3 || gLCD_Type == 0x4)
+		offset = 2;
+	else
+		offset = 0;
+		
+	for (i = 16; i < gRow-16-offset; i++)
+		for (j = 0; j < gCol; j++)
 		{
 			blue  = *p++;
 			green = *p++;
 			red   = *p++;
-			
-			// D[23:16] = Red data, D[15:8] = Green data,D[7:0] = Blue data
-			
-			color = (red << 18)| (green << 10)|( blue << 2); 
-			point(i, j, color);
+		
+			color = red << 16 | green << 8 | blue << 0;
+			lcd_draw_pixel(i, j, color);
 		}
+
 }
 
-void lcd_test()
-{
-	int y;
-	
-	//划横线 -> 描第150行，第y列
-	for(y=100;y<380;y++)
 
-		point(210,y,0xFFFF00);	
-	
-	Paint_Bmp(bmp);
-	//lcd_clear_screen(0x0000ff);
-	
-}
+
+
 
 
 
